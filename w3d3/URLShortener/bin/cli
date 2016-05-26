@@ -1,0 +1,113 @@
+class CLI
+  attr_accessor :user
+
+  def prompt
+    get_email
+    get_choice
+  end
+
+  def get_email
+    puts "What is your email?"
+    user_email = gets.chomp
+    unless User.exists?(email: user_email)
+      puts "User not found. Creating account."
+      make_new_user(user_email)
+    else
+      @user = User.find_by_email(user_email)
+    end
+  end
+
+  def make_new_user(user_email)
+    @user = User.create!(email: user_email)
+  end
+
+  def get_choice
+    while true
+      puts "Do you want to (v)isit a shortened URL, (c)reate one, or (q)uit?"
+      answer = gets.chomp
+      if answer == 'v'
+        visit_url
+      elsif answer == 'c'
+        create_url
+      elsif answer == 'q'
+        break
+      else
+        puts "Invalid input, please try again"
+        next
+      end
+    end
+  end
+
+  def create_url
+    if @user.link_count.nil? || @user.link_count < 5 || @user.premium
+      puts "Enter long URL"
+      long_url = gets.chomp
+
+      short = ShortenedUrl.create_for_user_and_long_url!(@user, long_url)
+      @user.increase_link_count
+      custom_option(short) if @user.premium?
+      puts "Your short URL is #{short.short_url}"
+
+      make_tag(short)
+    else
+      query_premium
+    end
+  end
+
+  def query_premium
+    puts "You've created too many links. Would you like to purchase a premium subscription (y/n)?"
+    prem = gets.chomp
+    if prem == "y"
+      buy_premium
+    end
+  end
+
+  def custom_option(short)
+    puts "Would you like a custom URL (y/n)?"
+    custom = gets.chomp
+    if custom == "y"
+      puts "What custom URL do you want?"
+      custom_url = gets.chomp
+      short.make_custom(custom_url)
+      short.short_url = custom_url
+    end
+  end
+
+  def make_tag(short)
+    puts "---------"
+    puts "What would you like to tag this as?"
+    puts "Sports"
+    puts "News"
+    puts "Music"
+    puts "Fitness"
+    puts "Food"
+    puts "Social Media"
+    puts "Search"
+    puts "Others"
+    puts "---------"
+    tag_entry = gets.chomp
+
+    tag = Tag.find_by_topic(tag_entry)
+    Tagging.add_tag!(tag, short)
+  end
+
+  def buy_premium
+    @user.make_premium
+    @user.premium = true
+  end
+
+  def visit_url
+    puts "Enter short URL"
+    short = gets.chomp
+    shortened = ShortenedUrl.find_by_short_url(short)
+    puts "Your URL is #{shortened.long_url}"
+
+    tag = Tag.find_by_id((Tagging.find_by_tagged_url_id(shortened.id)).tag_id)
+    puts "Tagged: #{tag.topic}"
+    Visit.record_visit!(@user, shortened)
+
+    Launchy.open(shortened.long_url)
+  end
+end
+
+CLI.new.prompt
