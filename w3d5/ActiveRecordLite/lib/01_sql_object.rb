@@ -79,11 +79,9 @@ class SQLObject
   end
 
   def attribute_values
-    vals = []
     self.class.columns.map do |col|
-      vals << send(col)
+      send(col)
     end
-    vals
   end
 
   def insert
