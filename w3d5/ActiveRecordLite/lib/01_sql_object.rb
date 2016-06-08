@@ -1,6 +1,9 @@
 require_relative 'db_connection'
 require 'active_support/inflector'
 require 'byebug'
+require_relative '02_searchable.rb'
+require_relative '03_associatable.rb'
+require_relative '04_associatable2.rb'
 # NB: the attr_accessor we wrote in phase 0 is NOT used in the rest
 # of this project. It was only a warm up.
 
